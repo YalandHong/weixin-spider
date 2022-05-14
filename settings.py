@@ -14,12 +14,12 @@ USER_AGENT_WECHAT = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KH
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36"
 
 # autocommit=true  连接断开后，事务没有回滚，残留的锁导致后续的查询报错.
-MYSQL_CONFIG =  "mysql://root:lx123#@localhost:3306/weixin_spider?charset=utf8mb4&autocommit=true"
+MYSQL_CONFIG =  "mysql://root:654321@localhost:3306/weixin_spider?charset=utf8mb4&autocommit=true"
 
 
 WX_REDIS_CONFIG = {             # \tools\addons.py 中的 WX_REDIS_CONFIG 也需要修改
-    'host': '106.53.236.37',
-    'password': 'lx123456',
+    'host': '127.0.0.1',
+    # 'password': 'lx123456',
     'port': 6379,
     'db': 0,
     'decode_responses': True,

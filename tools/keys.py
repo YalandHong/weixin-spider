@@ -26,7 +26,7 @@ def _get_key_uin(account_biz):
 def get_key_uin(account_biz):
     key_uin = _get_key_uin(account_biz)
     if not key_uin:
-        raise NoneKeyUinError("NoneKeyUinError")
+        raise NoneKeyUinError("get_key_uis")
     return json.loads(key_uin, encoding="utf-8")
 
 def get_pass_key_and_uin(article_url: str, account_biz: str):

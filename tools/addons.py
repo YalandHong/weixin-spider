@@ -14,7 +14,7 @@ import redis
 class WeiXinProxy:
     WX_REDIS_CONFIG = {
         'host': '127.0.0.1',
-        'password': 'lx',
+        #'password': 'lx',
         'port': 6379,
         'db': 0,
         'decode_responses': True,

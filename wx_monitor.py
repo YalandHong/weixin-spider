@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 # !/usr/bin/python3
 # @File   : wx_monitor.py
+from codecs import replace_errors
 import json
 import re
 import time
@@ -35,11 +36,11 @@ def _get_key_uin(account_biz):
 def get_key_uin(account_biz):
     key_uin = _get_key_uin(account_biz)
     if not key_uin:
-        raise NoneKeyUinError("NoneKeyUinError")
+        raise NoneKeyUinError("not key_uin: {}".format(key_uin))
     #print("get_key_uin: ", key_uin)
     key_uin_dict = json.loads(key_uin, encoding="utf-8")
     if not key_uin_dict.get("key", None) or not key_uin_dict.get("uin", None):
-        raise NoneKeyUinError("NoneKeyUinError")
+        raise NoneKeyUinError("not get: {}".format(key_uin_dict))
     return key_uin_dict
 
 
@@ -69,7 +70,7 @@ def get_pass_key_and_uin(article_url: str, account_biz: str):
             time.sleep(0.2)
         finally:
             #time.sleep(2)    
-            #wx_chat.close_web()  # 暂时不确定 关闭窗口 或者不关闭 的影响
+            wx_chat.close_web()  # 暂时不确定 关闭窗口 或者不关闭 的影响
             time.sleep(2)
             key_uin = _get_key_uin(account_biz)
 
@@ -114,14 +115,18 @@ class _MonitorThread(threading.Thread):
 
     def run(self):
         self.setName(self.__class__.__name__)
-        while 1:
-            try:
-                self.start_run()
-            except Exception as e:
-                print(e.args)
-                if MONITOR_ERROR:
-                    raise
-            time.sleep(0.1)
+        try:
+            self.start_run()
+        except Exception as e:
+            print(repr(e))
+        # while 1:
+        #     try:
+        #         self.start_run()
+        #     except Exception as e:
+        #         print(e.args)
+        #         if MONITOR_ERROR:
+        #             raise
+        #     time.sleep(0.1)
 
     def start_run(self):
         pass
@@ -158,6 +163,7 @@ class History(_MonitorThread):
         return new_article
 
     def account_run(self, account_id):
+        print("account run: ", account_id)
         account = models.Account.query.get(account_id)
         account_biz = account.account_biz
         account_offset = account.offset
@@ -220,6 +226,7 @@ class History(_MonitorThread):
 
     def start_run(self):
         account_list = self.load_accounts()
+        print("account list:", account_list)
         for account in account_list:
             account_id = account.id
             account_biz = account.account_biz
@@ -230,8 +237,8 @@ class History(_MonitorThread):
                 self.account_run(account_id)
                 self.update_account(account, status=0, update=str(int(time.time())))
                 print("数据已同步；", account)
-            except NoneKeyUinError:
-                print("NoneKeyUin: ", account)
+            except NoneKeyUinError as e:
+                print("NoneKeyUin: ", repr(e), account)
             finally:
                 if self.check_account_status(account_id, 2):
                     self.update_account(account, status=1)
@@ -266,15 +273,17 @@ class Article(_MonitorThread):
             article.article_html = self.get_content_from_html(article_html)
             article.article_comment_id = comment_id
             article.article_done = True
-        except ArticleHasBeenDeleteError:
+        except (ArticleHasBeenDeleteError, AttributeError) as e:
             article.article_fail = True
             article.article_done = True
+            print(repr(e))
         except IPError:
             if key and uin:
                 delete_key_uin(account_biz)
         finally:
             db.session.add(article)
             db.session.commit()
+            print("COMMIT", article.id, article.article_done, article.article_title)
 
     def start_run(self):
         s_time = time.time()
@@ -283,8 +292,8 @@ class Article(_MonitorThread):
             article_id = article.id
             try:
                 self.article_run(article_id)
-            except NoneKeyUinError:
-                pass
+            except NoneKeyUinError as e:
+                print(repr(e))
             finally:
                 time.sleep(UPDATE_DELAY)
         while time.time() - s_time < SLEEP_TIME:
@@ -420,18 +429,27 @@ class KeyUin(_MonitorThread):
         for account in self.accounts():
             account_biz = account.account_biz
             account_url = account.account_url
-            if not _get_key_uin(account_biz):
+            print(account, account_biz, account_url)
+            key_uin = _get_key_uin(account_biz)
+            if not key_uin:
+                print("got no key_uin")
                 get_pass_key_and_uin(account_url, account_biz)
+            else:
+                print("got key_uin:", key_uin)
+
             time.sleep(1)
 
 
 if __name__ == '__main__':
-    class_names = ["History", "Article", "Comment", "ReadLike", "KeyUin"]
+    #class_names = ["History", "Article", "Comment", "ReadLike", "KeyUin"]
+    #class_names = ["KeyUin"]
+    # class_names = ["History"]
+    class_names = ["Article"]
+    # class_names = ["ReadLike"]
     thread_list = [globals()[thread_name]() for thread_name in class_names]
 
-    while 1:
-        for thread in thread_list:
-            if not thread.is_alive():
-                thread.start()
-                print("thread.start: ", thread.name)
-            time.sleep(2)
+    for thread in thread_list:
+        if not thread.is_alive():
+            thread.start()
+            print("thread.start: ", thread.name)
+            thread.join()

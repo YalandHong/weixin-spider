@@ -54,9 +54,9 @@ class Article(db.Model):
     article_digest = db.Column(db.String(300))
     article_html = db.Column(mysql.MSMediumText)
 
-    article_content_url = db.Column(db.String(500), unique=True)
-    article_cover_url = db.Column(db.String(500))
-    article_source_url = db.Column(db.String(500))
+    article_content_url = db.Column(db.String(750), unique=True)
+    article_cover_url = db.Column(db.String(750))
+    article_source_url = db.Column(db.String(750))
     article_fail = db.Column(db.Boolean, default=False)  # 文章有效性
     article_done = db.Column(db.Boolean, default=False)  # 文章内容是否抓取
     article_comment_id = db.Column(db.String(20))
