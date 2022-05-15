@@ -8,6 +8,7 @@ import time
 import threading
 import redis
 import hashlib
+import sys
 
 from pyquery import PyQuery
 
@@ -94,6 +95,7 @@ class _MonitorThread(threading.Thread):
             models.Article.article_publish_time.desc()
         ).all()
         db.session.commit()
+        print("Article Len:", len(article_list))
         return article_list
 
     @staticmethod
@@ -378,7 +380,6 @@ class ReadLike(_MonitorThread):
         ).filter(
             models.Article.article_fail == False,
             # update时间超过1天，那就要重新获取阅读量
-            # read_like_update默认值是在models.py里设置的，是个12年的老时间，保证能被更新
             models.Article.read_like_update < int(time.time()) - WX_UPDATE_TIME,
             models.Article.article_publish_time > models.Article.read_like_update - WX_NOT_UPDATE_TIME,
         ).all()
@@ -442,7 +443,9 @@ if __name__ == '__main__':
     # class_names = ["History"]
     # class_names = ["Article"]
     # class_names = ["ReadLike"]
-    class_names = ["Article", "ReadLike"]
+    # class_names = ["Article", "ReadLike"]
+    class_names = sys.argv[1:]
+    print(class_names)
     thread_list = [globals()[thread_name]() for thread_name in class_names]
 
     for thread in thread_list:
