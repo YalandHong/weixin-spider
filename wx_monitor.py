@@ -142,6 +142,7 @@ class History(_MonitorThread):
 
     def load_accounts(self, **filter_by):
         account_list = self.accounts(**filter_by)
+        print("full account list:", account_list)
         return [account for account in account_list if account.status in [1, 2]]
 
     @staticmethod
@@ -242,7 +243,6 @@ class History(_MonitorThread):
             finally:
                 if self.check_account_status(account_id, 2):
                     self.update_account(account, status=1)
-                time.sleep(SLEEP_TIME)
 
 
 class Article(_MonitorThread):
@@ -296,8 +296,6 @@ class Article(_MonitorThread):
                 print(repr(e))
             finally:
                 time.sleep(UPDATE_DELAY)
-        while time.time() - s_time < SLEEP_TIME:
-            time.sleep(1)
 
 
 class Comment(_MonitorThread):
@@ -317,11 +315,10 @@ class Comment(_MonitorThread):
             try:
                 self.article_run(article.id)
                 print("文章评论已同步完成；", article)
-            except NoneKeyUinError:
-                pass
+            except NoneKeyUinError as e:
+                print(repr(e))
             finally:
                 time.sleep(UPDATE_DELAY)
-        time.sleep(UPDATE_STOP)
 
     @staticmethod
     def save_comment(article_id, comment_dict):
@@ -371,7 +368,6 @@ class Comment(_MonitorThread):
             db.session.add(article)
             db.session.commit()
         except KeyExpireError:
-            time.sleep(UPDATE_STOP)
             check_key_uin(account_biz)
 
 
@@ -381,6 +377,8 @@ class ReadLike(_MonitorThread):
             article_done=True,
         ).filter(
             models.Article.article_fail == False,
+            # update时间超过1天，那就要重新获取阅读量
+            # read_like_update默认值是在models.py里设置的，是个12年的老时间，保证能被更新
             models.Article.read_like_update < int(time.time()) - WX_UPDATE_TIME,
             models.Article.article_publish_time > models.Article.read_like_update - WX_NOT_UPDATE_TIME,
         ).all()
@@ -391,11 +389,10 @@ class ReadLike(_MonitorThread):
             try:
                 self.article_run(article.id)
                 print("文章阅读数据已同步完成；", article)
-            except NoneKeyUinError:
-                pass
+            except NoneKeyUinError as e:
+                print(repr(e))
             finally:
                 time.sleep(UPDATE_DELAY)
-        time.sleep(UPDATE_STOP)
 
     def article_run(self, article_id):
         article = models.Article.query.get(article_id)
@@ -420,7 +417,6 @@ class ReadLike(_MonitorThread):
             db.session.add(article)
             db.session.commit()
         except KeyExpireError:
-            time.sleep(UPDATE_STOP)
             check_key_uin(account_biz)
 
 
@@ -444,12 +440,12 @@ if __name__ == '__main__':
     #class_names = ["History", "Article", "Comment", "ReadLike", "KeyUin"]
     #class_names = ["KeyUin"]
     # class_names = ["History"]
-    class_names = ["Article"]
+    # class_names = ["Article"]
     # class_names = ["ReadLike"]
+    class_names = ["Article", "ReadLike"]
     thread_list = [globals()[thread_name]() for thread_name in class_names]
 
     for thread in thread_list:
-        if not thread.is_alive():
-            thread.start()
-            print("thread.start: ", thread.name)
-            thread.join()
+        thread.start()
+        print("thread.start: ", thread.name)
+        thread.join()
