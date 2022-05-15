@@ -4,6 +4,7 @@
 
 import time
 from sqlalchemy.databases import mysql
+from settings import DEFAULT_TIMESTAMP
 from webapp import db
 
 
@@ -31,7 +32,7 @@ class Account(db.Model):
     end = db.Column(db.Boolean, default=False)  # 公众号爬取是否完毕
     fail = db.Column(db.Boolean, default=False)  # 公众号有效性
 
-    update = db.Column(db.String(20), default="1356969600")  # 公众号更新时间
+    update = db.Column(db.String(20), default=DEFAULT_TIMESTAMP)  # 公众号更新时间
 
     articles = db.relationship("Article", backref="wx_account")
 
@@ -54,14 +55,14 @@ class Article(db.Model):
     article_digest = db.Column(db.String(300))
     article_html = db.Column(mysql.MSMediumText)
 
-    article_content_url = db.Column(db.String(750), unique=True)
-    article_cover_url = db.Column(db.String(750))
-    article_source_url = db.Column(db.String(750))
+    article_content_url = db.Column(db.String(500), unique=True)
+    article_cover_url = db.Column(db.String(500))
+    article_source_url = db.Column(db.String(810))
     article_fail = db.Column(db.Boolean, default=False)  # 文章有效性
     article_done = db.Column(db.Boolean, default=False)  # 文章内容是否抓取
     article_comment_id = db.Column(db.String(20))
-    comment_update = db.Column(db.String(20), default="1356969600")  # 公众号更新时间
-    read_like_update = db.Column(db.String(20), default="1356969600")  # 公众号更新时间
+    comment_update = db.Column(db.String(20), default=DEFAULT_TIMESTAMP)  # 公众号更新时间
+    read_like_update = db.Column(db.String(20), default=DEFAULT_TIMESTAMP)  # 公众号更新时间
     read_count = db.Column(db.Integer, default=0)
     like_count = db.Column(db.Integer, default=0)
 
