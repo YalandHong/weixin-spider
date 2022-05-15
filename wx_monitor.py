@@ -11,6 +11,7 @@ import hashlib
 import sys
 
 from pyquery import PyQuery
+from sklearn.utils import deprecated
 
 from api import get_history_api, get_html_api, get_article_comments_api, split_article_url2mis, \
     get_article_read_like_api
@@ -233,18 +234,14 @@ class History(_MonitorThread):
         for account in account_list:
             account_id = account.id
             account_biz = account.account_biz
-            try:
-                get_key_uin(account_biz)
-                print("开始同步；", account)
-                self.update_account(account, status=2)
-                self.account_run(account_id)
-                self.update_account(account, status=0, update=str(int(time.time())))
-                print("数据已同步；", account)
-            except NoneKeyUinError as e:
-                print("NoneKeyUin: ", repr(e), account)
-            finally:
-                if self.check_account_status(account_id, 2):
-                    self.update_account(account, status=1)
+            get_key_uin(account_biz)
+            print("开始同步；", account)
+            self.update_account(account, status=2)
+            self.account_run(account_id)
+            self.update_account(account, status=0, update=str(int(time.time())))
+            print("数据已同步；", account)
+            if self.check_account_status(account_id, 2):
+                self.update_account(account, status=1)
 
 
 class Article(_MonitorThread):
@@ -279,25 +276,20 @@ class Article(_MonitorThread):
             article.article_fail = True
             article.article_done = True
             print(repr(e))
-        except IPError:
-            if key and uin:
-                delete_key_uin(account_biz)
+        # except IPError:
+        #     if key and uin:
+        #         delete_key_uin(account_biz)
         finally:
             db.session.add(article)
             db.session.commit()
             print("COMMIT", article.id, article.article_done, article.article_title)
 
     def start_run(self):
-        s_time = time.time()
         for article in self.articles(article_done=False):
             print("文章开始同步；", article)
             article_id = article.id
-            try:
-                self.article_run(article_id)
-            except NoneKeyUinError as e:
-                print(repr(e))
-            finally:
-                time.sleep(UPDATE_DELAY)
+            self.article_run(article_id)
+            time.sleep(UPDATE_DELAY)
 
 
 class Comment(_MonitorThread):
@@ -314,13 +306,9 @@ class Comment(_MonitorThread):
         print("Comment len(article_list): ", len(article_list))
         for article in article_list:
             print("文章评论开始同步；", article)
-            try:
-                self.article_run(article.id)
-                print("文章评论已同步完成；", article)
-            except NoneKeyUinError as e:
-                print(repr(e))
-            finally:
-                time.sleep(UPDATE_DELAY)
+            self.article_run(article.id)
+            print("文章评论已同步完成；", article)
+            time.sleep(UPDATE_DELAY)
 
     @staticmethod
     def save_comment(article_id, comment_dict):
@@ -387,13 +375,9 @@ class ReadLike(_MonitorThread):
         print("ReadLike len(article_list): ", len(article_list))
         for article in article_list:
             print("文章阅读数据开始同步；", article)
-            try:
-                self.article_run(article.id)
-                print("文章阅读数据已同步完成；", article)
-            except NoneKeyUinError as e:
-                print(repr(e))
-            finally:
-                time.sleep(UPDATE_DELAY)
+            self.article_run(article.id)
+            print("文章阅读数据已同步完成；", article)
+            time.sleep(UPDATE_DELAY)
 
     def article_run(self, article_id):
         article = models.Article.query.get(article_id)
@@ -421,6 +405,7 @@ class ReadLike(_MonitorThread):
             check_key_uin(account_biz)
 
 
+@deprecated
 class KeyUin(_MonitorThread):
     def start_run(self):
         for account in self.accounts():
@@ -439,10 +424,7 @@ class KeyUin(_MonitorThread):
 
 if __name__ == '__main__':
     #class_names = ["History", "Article", "Comment", "ReadLike", "KeyUin"]
-    #class_names = ["KeyUin"]
     # class_names = ["History"]
-    # class_names = ["Article"]
-    # class_names = ["ReadLike"]
     # class_names = ["Article", "ReadLike"]
     class_names = sys.argv[1:]
     print(class_names)
